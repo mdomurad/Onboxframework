@@ -12,6 +12,8 @@ env:
   analyzers: analyzers/Onbox.Analyzers.Build.sln
   buildPlatform: x64
   buildConfiguration: R2019
+  newNamespace: V9
+  newVersion: 0.9.0.1
 
 jobs:
   build:
@@ -23,7 +25,7 @@ jobs:
       - uses: microsoft/setup-msbuild@v1.0.2
 
       - name: Versioning
-        run: .\ren.ps1 -oldNs .VDev -newNs ${{ env.NEWNAMESPACE }} -oldV 0.99.99.99 -newV ${{ env.NEWVERSION }}
+        run: .\ren.ps1 -oldNs .VDev -newNs ${{ env.newNamespace }} -oldV 0.99.99.99 -newV ${{ env.newVersion }}
         shell: powershell
 
       - name: Nuget Install
