@@ -37,14 +37,24 @@ jobs:
       - name: Visual Studio 2019 Build Projects
         run: msbuild '${{ env.solutionFilter }}' /p:configuration='${{ env.buildConfiguration }}' /p:platform='${{ env.buildPlatform }}'
 
-      - name: Package Nuget
-        run: nuget pack
+      - name: Package NuGet with symbols
+        run: |
+          # Navigate to the directory containing .nuspec files
+          cd build
+          # Loop through all .nuspec files in the directory and pack them with symbols
+          foreach ($file in Get-ChildItem -Path *.nuspec)
+          {
+            nuget pack $file.Name -Symbols -SymbolPackageFormat snupkg
+          }
+        shell: powershell
 
       - name: Copy Nuget to Staging Artifacts
-        run: Copy 'build//*.nupkg' '${{ github.workspace }}'
+        run: Copy-Item 'build//*.nupkg' '${{ github.workspace }}'
+        shell: powershell
 
       - name: Nuget Restore Analyzers
         run: nuget restore ${{ env.analyzers }}
+        shell: powershell
 
       - name: Visual Studio 2019 Build Analyzers
         run: msbuild '${{ env.analyzers }}' /p:configuration='Release' /p:platform='Any CPU'
