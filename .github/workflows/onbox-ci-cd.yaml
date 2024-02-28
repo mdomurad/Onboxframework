@@ -1,0 +1,57 @@
+name: Build and publish Onbox packages
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  solution: Onbox.sln
+  solutionFilter: OnboxNuget.slnf
+  analyzers: analyzers/Onbox.Analyzers.Build.sln
+  buildPlatform: x64
+  buildConfiguration: R2019
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: microsoft/setup-msbuild@v1.0.2
+
+      - name: Versioning
+        run: .\ren.ps1 -oldNs .VDev -newNs ${{ env.NEWNAMESPACE }} -oldV 0.99.99.99 -newV ${{ env.NEWVERSION }}
+        shell: powershell
+
+      - name: Nuget Install
+        uses: nuget/setup-nuget@v1
+
+      - name: Nuget Restore Build Projects
+        run: nuget restore ${{ env.solution }}
+
+      - name: Visual Studio 2019 Build Projects
+        run: msbuild '${{ env.solutionFilter }}' /p:configuration='${{ env.buildConfiguration }}' /p:platform='${{ env.buildPlatform }}'
+
+      - name: Package Nuget
+        run: nuget pack
+
+      - name: Copy Nuget to Staging Artifacts
+        run: Copy 'build//*.nupkg' '${{ github.workspace }}'
+
+      - name: Nuget Restore Analyzers
+        run: nuget restore ${{ env.analyzers }}
+
+      - name: Visual Studio 2019 Build Analyzers
+        run: msbuild '${{ env.analyzers }}' /p:configuration='Release' /p:platform='Any CPU'
+
+      - name: Copy Analyzers Nuget to Staging Artifacts
+        run: Copy 'analyzers/Onbox.Analyzers/Onbox.Analyzers.Package/bin/Release//*.nupkg' '${{ github.workspace }}'
+
+      - name: Artifacts Publish
+        uses: actions/upload-artifact@v2
+        with:
+          path: ${{ github.workspace }}
+          name: packages
